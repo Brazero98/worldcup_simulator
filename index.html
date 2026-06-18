@@ -215,7 +215,7 @@
 </div>
 
 <!-- GRANULARITY TOOLBAR -->
-<div class="granularity-bar" id="gran-bar" style="display:none">
+<div class="granularity-bar" id="gran-bar" style="display:flex">
   <span>SCHNELL-SIM:</span>
   <button class="gran-btn" onclick="simAllPositions(1)">🥇 Alle Ersten</button>
   <button class="gran-btn" onclick="simAllPositions(2)">🥈 Alle Zweiten</button>
@@ -235,7 +235,7 @@
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="simulateAllGroups()">🎲 Spiele simulieren</button>
-      <button class="btn btn-secondary" id="qp-mode-toggle" onclick="toggleQuickPickMode()">📋 Positionen-Modus</button>
+      <button class="btn btn-secondary" id="qp-mode-toggle" onclick="toggleQuickPickMode()" style="border-color:var(--accent2);color:var(--accent2)">✕ Positionen-Modus</button>
       <button class="btn btn-secondary" onclick="showTab('bracket')">→ Turnierbaum</button>
     </div>
   </div>
@@ -350,7 +350,7 @@ let knockoutMatches = {}; // bracket matches
 let modalCallback = null;
 let currentModalMatch = null;
 let quickPick = {}; // quickPick[group] = [team1st, team2nd, team3rd, team4th] (null = unset)
-let quickPickMode = false; // whether Positionen-Modus is active
+let quickPickMode = true; // whether Positionen-Modus is active
 
 // Initialize group matches
 function initGroupMatches() {
@@ -861,8 +861,9 @@ function renderGroups() {
         <thead>
           <tr>
             <th>#</th><th style="text-align:left">Team</th>
-            <th>Sp</th><th>S</th><th>U</th><th>N</th>
-            <th>T</th><th>TD</th><th>Pkt</th>
+            <th>Sp</th><th>Pkt</th><th>TD</th>
+            <th style="color:var(--muted)">S</th><th style="color:var(--muted)">U</th><th style="color:var(--muted)">N</th>
+            <th style="color:var(--muted)">T</th>
           </tr>
         </thead>
         <tbody>
@@ -878,10 +879,11 @@ function renderGroups() {
             <tr class="${cls}">
               <td><span class="pos-badge pos-${i+1}">${i+1}</span></td>
               <td><span class="flag">${FLAGS[s.team] || '🏳'}</span>${s.team}${qpBadge}</td>
-              <td>${s.played}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td>
-              <td>${s.gf}:${s.ga}</td>
-              <td>${s.gd > 0 ? '+' : ''}${s.gd}</td>
+              <td>${s.played}</td>
               <td><strong>${s.pts}</strong></td>
+              <td>${s.gd > 0 ? '+' : ''}${s.gd}</td>
+              <td style="color:var(--muted)">${s.w}</td><td style="color:var(--muted)">${s.d}</td><td style="color:var(--muted)">${s.l}</td>
+              <td style="color:var(--muted)">${s.gf}:${s.ga}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -1254,7 +1256,7 @@ const TEAM_MAP_API = {
   'Canada': 'Kanada',
   'Qatar': 'Katar',
   'Switzerland': 'Schweiz',
-  'Bosnia and Herzegovina': 'Bosnien',
+  'Bosnia and Herzegovina': 'Bosnien', 'Bosnia-Herzegovina': 'Bosnien', 'Bosnia & Herzegovina': 'Bosnien',
   'Haiti': 'Haiti',
   'Scotland': 'Schottland',
   'Brazil': 'Brasilien',
