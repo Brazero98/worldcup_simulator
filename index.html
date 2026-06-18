@@ -1323,10 +1323,15 @@ async function fetchLiveResults() {
   if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = '⏳ Lade Live-Ergebnisse...'; }
 
   try {
-    const resp = await fetch('https://api.football-data.org/v4/competitions/WC/matches', {
+    const TARGET = 'https://api.football-data.org/v4/competitions/WC/matches';
+    const resp = await fetch('https://corsproxy.io/?' + encodeURIComponent(TARGET), {
       headers: { 'X-Auth-Token': API_KEY }
     });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    if (!resp.ok) {
+      let errText = '';
+      try { const j = await resp.json(); errText = j.message || ''; } catch(e) {}
+      throw new Error(`HTTP ${resp.status}${errText ? ': ' + errText : ''}`);
+    }
     const data = await resp.json();
 
     let updated = 0;
@@ -1363,7 +1368,7 @@ async function fetchLiveResults() {
     console.warn('Fehler beim Laden der Live-Ergebnisse:', e);
     if (statusEl) {
       statusEl.style.color = '#f59e0b';
-      statusEl.textContent = '⚠️ Live-Daten nicht verfügbar – bitte manuell eingeben';
+      statusEl.textContent = `⚠️ Fehler: ${e.message}`;
     }
   }
 }
