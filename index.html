@@ -231,7 +231,7 @@
     <div>
       <h2>GRUPPENPHASE — WM 2026</h2>
       <p style="color:var(--muted);font-size:0.8rem;margin-top:4px">48 Teams · 12 Gruppen · Top 2 + 8 beste Dritte qualifizieren sich</p>
-      <p style="color:#10b981;font-size:0.75rem;margin-top:4px">✓ Live-Ergebnisse geladen: Stand 15. Juni 2026 · Gruppen A–F (je 1 Spieltag)</p>
+      <p id="api-status" style="color:var(--muted);font-size:0.75rem;margin-top:4px">⏳ Lade Live-Ergebnisse...</p>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="simulateAllGroups()">🎲 Spiele simulieren</button>
@@ -1242,48 +1242,139 @@ document.getElementById('modal').addEventListener('click', function(e) {
 // A: [Mexiko,Korea,Tschechien,Südafrika]
 //   A_0=MexikoVsKorea, A_1=MexikoVsTschechien, A_2=MexikoVsSüdafrika
 //   A_3=KoreaVsTschechien, A_4=KoreaVsSüdafrika, A_5=TschechienVsSüdafrika
-const LIVE_RESULTS = {
-  // GRUPPE A – gespielt: Mexiko 2:0 Südafrika, Korea 2:1 Tschechien
-  'A_2': [2, 0],   // Mexiko 2:0 Südafrika
-  'A_3': [2, 1],   // Korea 2:1 Tschechien
-  // GRUPPE B – gespielt: Katar 1:1 Schweiz, Kanada 1:1 Bosnien
-  // B: [Kanada,Katar,Schweiz,Bosnien] → B_2=KanadaVsBosnien, B_3=KatarVsSchweiz
-  'B_2': [1, 1],   // Kanada 1:1 Bosnien
-  'B_3': [1, 1],   // Katar 1:1 Schweiz
-  // GRUPPE C – gespielt: Schottland 1:0 Haiti, Brasilien 1:1 Marokko
-  // C: [Haiti,Schottland,Brasilien,Marokko] → C_0=HaitiVsSchottland, C_5=BrasilienVsMarokko
-  'C_0': [0, 1],   // Haiti 0:1 Schottland
-  'C_5': [1, 1],   // Brasilien 1:1 Marokko
-  // GRUPPE D – gespielt: USA 4:1 Paraguay, Australien 2:0 Türkei
-  // D: [USA,Türkei,Paraguay,Australien] → D_1=USAVsParaguay, D_4=TürkeiVsAustralien
-  'D_1': [4, 1],   // USA 4:1 Paraguay
-  'D_4': [0, 2],   // Türkei 0:2 Australien
-  // GRUPPE E – gespielt: Deutschland 7:1 Curaçao, Elfenbeinküste 1:0 Ecuador
-  // E: [Deutschland,Elfenbeinküste,Ecuador,Curaçao] → E_2=DeutschlandVsCuraçao, E_3=ElfenbeinküsteVsEcuador
-  'E_2': [7, 1],   // Deutschland 7:1 Curaçao
-  'E_3': [1, 0],   // Elfenbeinküste 1:0 Ecuador
-  // GRUPPE F – gespielt: Schweden 5:1 Tunesien, Niederlande 2:2 Japan
-  // F: [Niederlande,Schweden,Tunesien,Japan] → F_2=NiederlandeVsJapan, F_3=SchwedenVsTunesien
-  'F_2': [2, 2],   // Niederlande 2:2 Japan
-  'F_3': [5, 1],   // Schweden 5:1 Tunesien
+// ===================== LIVE API =====================
+const API_KEY = '8b42418f9b754a3dba0f2ab9d40afc22';
+
+// Maps football-data.org English team names → German names used in GROUPS_DATA
+const TEAM_MAP_API = {
+  'Mexico': 'Mexiko',
+  'Korea Republic': 'Korea', 'South Korea': 'Korea',
+  'Czechia': 'Tschechien', 'Czech Republic': 'Tschechien',
+  'South Africa': 'Südafrika',
+  'Canada': 'Kanada',
+  'Qatar': 'Katar',
+  'Switzerland': 'Schweiz',
+  'Bosnia and Herzegovina': 'Bosnien',
+  'Haiti': 'Haiti',
+  'Scotland': 'Schottland',
+  'Brazil': 'Brasilien',
+  'Morocco': 'Marokko',
+  'United States': 'USA',
+  'Türkiye': 'Türkei', 'Turkey': 'Türkei',
+  'Paraguay': 'Paraguay',
+  'Australia': 'Australien',
+  'Germany': 'Deutschland',
+  "Côte d'Ivoire": 'Elfenbeinküste', 'Ivory Coast': 'Elfenbeinküste',
+  'Ecuador': 'Ecuador',
+  'Curaçao': 'Curaçao',
+  'Netherlands': 'Niederlande',
+  'Sweden': 'Schweden',
+  'Tunisia': 'Tunesien',
+  'Japan': 'Japan',
+  'Belgium': 'Belgien',
+  'Iran': 'Iran',
+  'New Zealand': 'Neuseeland',
+  'Egypt': 'Ägypten',
+  'Spain': 'Spanien',
+  'Saudi Arabia': 'Saudi-Arabien',
+  'Uruguay': 'Uruguay',
+  'Cape Verde': 'Kap Verde',
+  'France': 'Frankreich',
+  'Senegal': 'Senegal',
+  'Iraq': 'Irak',
+  'Norway': 'Norwegen',
+  'Argentina': 'Argentinien',
+  'Algeria': 'Algerien',
+  'Austria': 'Österreich',
+  'Jordan': 'Jordanien',
+  'Portugal': 'Portugal',
+  'DR Congo': 'DR Kongo', 'Congo DR': 'DR Kongo',
+  'Uzbekistan': 'Usbekistan',
+  'Colombia': 'Kolumbien',
+  'England': 'England',
+  'Ghana': 'Ghana',
+  'Panama': 'Panama',
+  'Croatia': 'Kroatien'
 };
 
-function loadLiveResults() {
-  Object.keys(LIVE_RESULTS).forEach(key => {
-    if (groupResults[key]) {
-      groupResults[key].homeGoals = LIVE_RESULTS[key][0];
-      groupResults[key].awayGoals = LIVE_RESULTS[key][1];
+// Given two German team names, returns { key: 'G_idx', homeIsFirst: bool } or null
+function findGroupMatchKey(homeDE, awayDE) {
+  for (const [group, teams] of Object.entries(GROUPS_DATA)) {
+    const hi = teams.indexOf(homeDE);
+    const ai = teams.indexOf(awayDE);
+    if (hi === -1 || ai === -1) continue;
+    const first = Math.min(hi, ai);
+    const second = Math.max(hi, ai);
+    let idx = 0;
+    for (let i = 0; i < teams.length; i++) {
+      for (let j = i + 1; j < teams.length; j++) {
+        if (i === first && j === second) {
+          return { key: `${group}_${idx}`, homeIsFirst: hi < ai };
+        }
+        idx++;
+      }
     }
-  });
+  }
+  return null;
+}
+
+async function fetchLiveResults() {
+  const statusEl = document.getElementById('api-status');
+  if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = '⏳ Lade Live-Ergebnisse...'; }
+
+  try {
+    const resp = await fetch('https://api.football-data.org/v4/competitions/WC/matches', {
+      headers: { 'X-Auth-Token': API_KEY }
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    let updated = 0;
+    for (const match of data.matches) {
+      if (match.status !== 'FINISHED') continue;
+      if (match.stage !== 'GROUP_STAGE') continue;
+
+      const homeDE = TEAM_MAP_API[match.homeTeam.name] || match.homeTeam.name;
+      const awayDE = TEAM_MAP_API[match.awayTeam.name] || match.awayTeam.name;
+      const hg = match.score.fullTime.home;
+      const ag = match.score.fullTime.away;
+      if (hg === null || ag === null) continue;
+
+      const found = findGroupMatchKey(homeDE, awayDE);
+      if (!found) { console.warn('Team nicht gefunden:', homeDE, 'vs', awayDE); continue; }
+
+      const { key, homeIsFirst } = found;
+      if (groupResults[key]) {
+        groupResults[key].homeGoals = homeIsFirst ? hg : ag;
+        groupResults[key].awayGoals = homeIsFirst ? ag : hg;
+        updated++;
+      }
+    }
+
+    renderGroups();
+    updateStats();
+
+    const time = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    if (statusEl) {
+      statusEl.style.color = '#10b981';
+      statusEl.textContent = `✅ ${updated} Ergebnis${updated === 1 ? '' : 'se'} geladen · Stand: ${time}`;
+    }
+  } catch (e) {
+    console.warn('Fehler beim Laden der Live-Ergebnisse:', e);
+    if (statusEl) {
+      statusEl.style.color = '#f59e0b';
+      statusEl.textContent = '⚠️ Live-Daten nicht verfügbar – bitte manuell eingeben';
+    }
+  }
 }
 
 // ===================== INIT =====================
 initGroupMatches();
 initBracket();
-loadLiveResults();
 renderGroups();
 renderBracket();
 updateStats();
+fetchLiveResults(); // async – updates UI automatically when data arrives
 </script>
 </body>
 </html>
